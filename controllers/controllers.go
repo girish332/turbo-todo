@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,8 +11,6 @@ import (
 	"strconv"
 
 	"github.com/girish332/turbo-todo/utils"
-
-	"github.com/girish332/turbo-todo/dao"
 
 	"github.com/girish332/turbo-todo/model"
 	"github.com/gorilla/mux"
@@ -26,8 +25,19 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	// io.WriteString(w, `{"isAlive": true}`)
 }
 
+type Env struct {
+	DB   *sql.DB
+	Todo interface {
+		GetAll() (slice []model.TodoModel, err error)
+		InsertTodo(t model.TodoModel) (err error)
+		GetOne(id int) (t model.TodoModel, err error)
+		Update(id int, completed bool) (count int64, err error)
+		Delete(id int) (err error)
+	}
+}
+
 // CreateTodo func to create a todo
-func CreateTodo(w http.ResponseWriter, r *http.Request) { //Add validations
+func (e *Env) CreateTodo(w http.ResponseWriter, r *http.Request) { //Add validations
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -53,11 +63,12 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) { //Add validations
 	}
 	fmt.Println(err)
 	fmt.Println(t.Completed)
-	t.ID = rand.Intn(100000)
+	t.ID = rand.Intn(1000000)
 	// insertStatement := `INSERT INTO todo (ID, Title, Completed) Values ($1, $2, $3);`
 	// _, err = dao.DB.Exec(insertStatement, t.ID, t.Title, t.Completed)
 
-	err = dao.InsertTodo(t)
+	err = e.Todo.InsertTodo(t)
+	// err = dao.InsertTodo(t)
 	if err != nil {
 
 		utils.JSONError(w, err, 400)
@@ -71,11 +82,11 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) { //Add validations
 }
 
 // GetTodos function to get all the todos present in the database
-func GetTodos(w http.ResponseWriter, r *http.Request) {
+func (e *Env) GetTodos(w http.ResponseWriter, r *http.Request) {
 
 	var todoSlice []model.TodoModel
 
-	todoSlice, err := dao.GetAll()
+	todoSlice, err := e.Todo.GetAll()
 	if err != nil {
 
 		utils.JSONError(w, err, 500)
@@ -95,7 +106,7 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateTodo Handler to update todo as completed
-func UpdateTodo(w http.ResponseWriter, r *http.Request) {
+func (e *Env) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -120,7 +131,8 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 	id := t.ID
 	completed := t.Completed
-	count, err := dao.Update(id, completed)
+	// count, err := dao.Update(id, completed)
+	count, err := e.Todo.Update(id, completed)
 	if err != nil {
 
 		utils.JSONError(w, err, 400)
@@ -135,7 +147,7 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 //DeleteTodo func to remove the object from the db
-func DeleteTodo(w http.ResponseWriter, r *http.Request) {
+func (e *Env) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -158,7 +170,7 @@ func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	// deleteQuery := `DELETE FROM TODO WHERE id = $1;`
 	// res, err := dao.DB.Exec(deleteQuery, id)
 
-	err = dao.Delete(id)
+	err = e.Todo.Delete(id)
 
 	if err != nil {
 		utils.JSONError(w, err, 400)
@@ -172,7 +184,7 @@ func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetTodo ...
-func GetTodo(w http.ResponseWriter, r *http.Request) {
+func (e *Env) GetTodo(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -183,7 +195,7 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var t model.TodoModel
-	t, err = dao.GetOne(id)
+	t, err = e.Todo.GetOne(id)
 
 	if err != nil {
 

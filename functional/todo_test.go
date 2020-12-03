@@ -1,101 +1,129 @@
 package functional
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-
-	"github.com/girish332/turbo-todo/model"
-
-	"github.com/girish332/turbo-todo/bootstrap"
-	"github.com/gorilla/mux"
-
 	_ "github.com/lib/pq"
 )
 
-func routerSetup() *mux.Router {
+// // func routerSetup() *mux.Router {
 
-	return bootstrap.TestApplication()
-}
+// // 	return bootstrap.TestApplication()
+// // }
 
-func TestGetAllEndpoint(t *testing.T) {
+// // type mockStorage struct {
+// // 	id        int
+// // 	title     string
+// // 	completed bool
+// // }
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "{ \"status\": \"210\"}")
+// // func NewMockStorage()  {
 
-	}
-	req, err := http.NewRequest("GET", "http://localhost:8080/todos", nil)
+// // 	return &mockStorage{}
+// // }
+// func TestGetAllEndpoint(t *testing.T) {
 
-	if err != nil {
+// 	handler := func(w http.ResponseWriter, r *http.Request) {
+// 		io.WriteString(w, "{ \"status\": \"210\"}")
 
-		t.Fatal(err)
-	}
+// 	}
+// 	req, err := http.NewRequest("GET", "http://localhost:8080/todos", nil)
 
-	rr := httptest.NewRecorder()
+// 	if err != nil {
 
-	// handler := http.HandlerFunc(controllers.GetTodos)
-	// testRouter := routerSetup()
-	// testRouter.ServeHTTP(rr, req)
-	handler(rr, req)
-	// handler.ServeHTTP(rr, req)
-	status := rr.Code
+// 		t.Fatal(err)
+// 	}
 
-	if status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
+// 	rr := httptest.NewRecorder()
 
-}
+// 	// handler := http.HandlerFunc(controllers.GetTodos)
+// 	// testRouter := routerSetup()
+// 	// testRouter.ServeHTTP(rr, req)
+// 	handler(rr, req)
+// 	// handler.ServeHTTP(rr, req)
+// 	status := rr.Code
 
-type createTodo struct {
-	CreateTodo bool
-}
+// 	if status != http.StatusOK {
+// 		t.Errorf("handler returned wrong status code: got %v want %v",
+// 			status, http.StatusOK)
+// 	}
 
-func TestCreateTodo(t *testing.T) {
+// }
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "{ \"status\": \"210\"}")
+// type createTodo struct {
+// 	CreateTodo bool
+// }
 
-	}
+// func TestCreateTodo(t *testing.T) {
 
-	body := []byte(`{"Title":"Testing1" , "Completed":false}"`)
-	req, err := http.NewRequest("POST", "http://localhost:8080/todo", bytes.NewReader(body))
+// 	handler := func(w http.ResponseWriter, r *http.Request) {
+// 		io.WriteString(w, "{ \"status\": \"210\"}")
 
-	if err != nil {
+// 	}
 
-		t.Fatal(err)
-	}
+// 	body := []byte(`{"Title":"Testing1" , "Completed":false}"`)
+// 	req, err := http.NewRequest("POST", "http://localhost:8080/todo", bytes.NewReader(body))
 
-	rr := httptest.NewRecorder()
+// 	if err != nil {
 
-	// handler := http.HandlerFunc(controllers.GetTodos)
-	// testRouter := routerSetup()
-	// testRouter.ServeHTTP(rr, req)
-	handler(rr, req)
-	// handler.ServeHTTP(rr, req)
-	status := rr.Code
+// 		t.Fatal(err)
+// 	}
 
-	if status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-	// var c createTodo
-	var t1 model.TodoModel
-	bodyBytes, err := ioutil.ReadAll(rr.Body)
-	// fmt.Println(bodyBytes)
-	if err != nil {
-		t.Errorf("Error in reading body")
-	}
-	err = json.Unmarshal(bodyBytes, &t1)
-	fmt.Println(t1.Title)
+// 	rr := httptest.NewRecorder()
 
-	if err != nil {
-		t.Errorf("error in unmarshaling")
-	}
+// 	// handler := http.HandlerFunc(controllers.GetTodos)
+// 	// testRouter := routerSetup()
+// 	// testRouter.ServeHTTP(rr, req)
+// 	handler(rr, req)
+// 	// handler.ServeHTTP(rr, req)
+// 	status := rr.Code
 
-}
+// 	if status != http.StatusOK {
+// 		t.Errorf("handler returned wrong status code: got %v want %v",
+// 			status, http.StatusOK)
+// 	}
+// 	// var c createTodo
+// 	var t1 model.TodoModel
+// 	bodyBytes, err := ioutil.ReadAll(rr.Body)
+// 	// fmt.Println(bodyBytes)
+// 	if err != nil {
+// 		t.Errorf("Error in reading body")
+// 	}
+// 	err = json.Unmarshal(bodyBytes, &t1)
+// 	fmt.Println(t1.Title)
+
+// 	if err != nil {
+// 		t.Errorf("error in unmarshaling")
+// 	}
+
+// }
+
+// func TestGetNonExistentId(t *testing.T) {
+
+// 	router := mux.NewRouter()
+// 	req, _ := http.NewRequest("GET", "http://localhost/todos/10", nil)
+// 	rr := httptest.NewRecorder()
+
+// 	router.ServeHTTP(rr, req)
+
+// 	if rr.Code != 404 {
+// 		t.Errorf("Wanted code 404 got %v", rr.Code)
+// 	}
+
+// }
+
+// func TestGetProduct(t *testing.T) {
+
+// 	router := mux.NewRouter()
+
+// 	req, _ := http.NewRequest("GET", "http://localhost:8080/todos/498081", nil)
+
+// 	rr := httptest.NewRecorder()
+
+// 	router.ServeHTTP(rr, req)
+
+// 	if rr.Code != http.StatusOK {
+// 		t.Errorf("Wanted code 200 got %v", rr.Code)
+// 	}
+
+// 	// t1 := model.TodoModel
+// 	fmt.Println(rr.Body)
+// }

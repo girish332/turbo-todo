@@ -3,7 +3,6 @@ package dao
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/girish332/turbo-todo/model"
@@ -13,17 +12,22 @@ import (
 )
 
 // DB ...
-var DB *sql.DB
+// var DB *sql.DB
+
+type DataBase struct {
+	DB *sql.DB
+}
 
 // DatabaseInit func to initialize connection to DB
 func DatabaseInit() {
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		// log.Fatal("Error loading .env file")
+		fmt.Println(err)
 	}
 	dbDsn := os.Getenv("dbDsn")
-	DB, err = sql.Open("postgres", dbDsn)
+	DB, err := sql.Open("postgres", dbDsn)
 
 	err = DB.Ping()
 	if err != nil {
@@ -34,10 +38,10 @@ func DatabaseInit() {
 }
 
 // GetAll ....
-func GetAll() (slice []model.TodoModel, err error) {
+func (d DataBase) GetAll() (slice []model.TodoModel, err error) {
 
 	getStatement := "select * from todo"
-	data, err := DB.Query(getStatement)
+	data, err := d.DB.Query(getStatement)
 
 	if err != nil {
 		return nil, err
@@ -62,10 +66,10 @@ func GetAll() (slice []model.TodoModel, err error) {
 }
 
 //InsertTodo func to insert into db
-func InsertTodo(t model.TodoModel) (err error) {
+func (d DataBase) InsertTodo(t model.TodoModel) (err error) {
 
 	insertStatement := `INSERT INTO todo (ID, Title, Completed) Values ($1, $2, $3);`
-	_, err = DB.Exec(insertStatement, t.ID, t.Title, t.Completed)
+	_, err = d.DB.Exec(insertStatement, t.ID, t.Title, t.Completed)
 
 	if err != nil {
 		return err
@@ -76,31 +80,26 @@ func InsertTodo(t model.TodoModel) (err error) {
 }
 
 // GetOne function to get one todo from db
-func GetOne(id int) (t model.TodoModel, err error) {
+func (d DataBase) GetOne(id int) (t model.TodoModel, err error) {
 
 	var t1 model.TodoModel
 	selectQuery := `SELECT * FROM TODO WHERE id = $1;`
-	res, err := DB.Query(selectQuery, id)
+	res := d.DB.QueryRow(selectQuery, id)
+
+	err = res.Scan(&t1.ID, &t1.Title, &t1.Completed)
 
 	if err != nil {
 		return t1, err
-	}
-
-	for res.Next() {
-		err = res.Scan(&t1.ID, &t1.Title, &t1.Completed)
-		if err != nil {
-			return t1, err
-		}
 	}
 
 	return t1, nil
 }
 
 // Update ...
-func Update(id int, completed bool) (count int64, err error) {
+func (d DataBase) Update(id int, completed bool) (count int64, err error) {
 
 	insertStatement := `UPDATE todo SET COMPLETED = $1 WHERE ID = $2;`
-	res, err := DB.Exec(insertStatement, completed, id)
+	res, err := d.DB.Exec(insertStatement, completed, id)
 
 	if err != nil {
 		return 0, err
@@ -116,10 +115,10 @@ func Update(id int, completed bool) (count int64, err error) {
 }
 
 // Delete ...
-func Delete(id int) (err error) {
+func (d DataBase) Delete(id int) (err error) {
 
 	deleteQuery := `DELETE FROM TODO WHERE id = $1;`
-	_, err = DB.Exec(deleteQuery, id)
+	_, err = d.DB.Exec(deleteQuery, id)
 
 	if err != nil {
 		return err
