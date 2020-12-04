@@ -18,8 +18,26 @@ type DataBase struct {
 	DB *sql.DB
 }
 
+type databaseServiceInterface interface {
+	GetAll() (slice []model.TodoModel, err error)
+	InsertTodo(t model.TodoModel) (err error)
+	GetOne(id int) (t model.TodoModel, err error)
+	Update(id int, completed bool) (count int64, err error)
+	Delete(id int) (err error)
+}
+
+func NewMockDatabase(db *sql.DB) databaseServiceInterface {
+	return &DataBase{DB: db}
+}
+
+type todoModel struct {
+	ID        int    `json:"id"`
+	Title     string `json:"title"`
+	Completed bool   `json:"completed"`
+}
+
 // DatabaseInit func to initialize connection to DB
-func DatabaseInit() {
+func DatabaseInit() *sql.DB {
 
 	err := godotenv.Load()
 	if err != nil {
@@ -35,12 +53,13 @@ func DatabaseInit() {
 	}
 
 	fmt.Println("Connected to DB")
+	return DB
 }
 
 // GetAll ....
 func (d DataBase) GetAll() (slice []model.TodoModel, err error) {
 
-	getStatement := "select * from todo"
+	getStatement := "SELECT id,title,completed FROM TODO"
 	data, err := d.DB.Query(getStatement)
 
 	if err != nil {
@@ -68,7 +87,7 @@ func (d DataBase) GetAll() (slice []model.TodoModel, err error) {
 //InsertTodo func to insert into db
 func (d DataBase) InsertTodo(t model.TodoModel) (err error) {
 
-	insertStatement := `INSERT INTO todo (ID, Title, Completed) Values ($1, $2, $3);`
+	insertStatement := "INSERT INTO todo (id, title, completed) VALUES (?, ?, ?)"
 	_, err = d.DB.Exec(insertStatement, t.ID, t.Title, t.Completed)
 
 	if err != nil {
@@ -83,7 +102,7 @@ func (d DataBase) InsertTodo(t model.TodoModel) (err error) {
 func (d DataBase) GetOne(id int) (t model.TodoModel, err error) {
 
 	var t1 model.TodoModel
-	selectQuery := `SELECT * FROM TODO WHERE id = $1;`
+	selectQuery := "SELECT id,title,completed FROM TODO WHERE id = $1"
 	res := d.DB.QueryRow(selectQuery, id)
 
 	err = res.Scan(&t1.ID, &t1.Title, &t1.Completed)
@@ -98,16 +117,16 @@ func (d DataBase) GetOne(id int) (t model.TodoModel, err error) {
 // Update ...
 func (d DataBase) Update(id int, completed bool) (count int64, err error) {
 
-	insertStatement := `UPDATE todo SET COMPLETED = $1 WHERE ID = $2;`
+	insertStatement := `UPDATE todo SET COMPLETED = $1 WHERE ID = $2`
 	res, err := d.DB.Exec(insertStatement, completed, id)
 
 	if err != nil {
-		return 0, err
+		return 1, err
 	}
 
 	c, err := res.RowsAffected()
 	if err != nil {
-		return 0, err
+		return 1, err
 	}
 
 	return c, nil
