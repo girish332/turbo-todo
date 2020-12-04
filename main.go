@@ -14,6 +14,19 @@ import (
 	"github.com/joho/godotenv"
 )
 
+func InitDatabase() *sql.DB {
+
+	err := godotenv.Load()
+	if err != nil {
+		// log.Fatal("Error loading .env file")
+		fmt.Println(err)
+	}
+	dbDsn := os.Getenv("dbDsn")
+	DB, err := sql.Open("postgres", dbDsn)
+
+	return DB
+}
+
 func main() {
 
 	err := godotenv.Load()
@@ -24,7 +37,7 @@ func main() {
 	dbDsn := os.Getenv("dbDsn")
 	DB, err := sql.Open("postgres", dbDsn)
 
-	env := &controllers.Env{
+	env := &controllers.Controller{
 		Todo: dao.DataBase{DB: DB},
 	}
 
