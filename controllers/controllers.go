@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -25,7 +24,8 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	// io.WriteString(w, `{"isAlive": true}`)
 }
 
-type Env struct {
+// Controller struct having database pool and interface
+type Controller struct { //Change to controller
 	DB   *sql.DB
 	Todo interface {
 		GetAll() (slice []model.TodoModel, err error)
@@ -37,29 +37,29 @@ type Env struct {
 }
 
 // CreateTodo func to create a todo
-func (e *Env) CreateTodo(w http.ResponseWriter, r *http.Request) { //Add validations
+func (e *Controller) CreateTodo(w http.ResponseWriter, r *http.Request) { //Add validations
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		utils.JSONError(w, err, 400, "Unable to read body")
+
 		return
 	}
 
 	ct := r.Header.Get("content-type")
 
 	if ct != "application/json" {
-		w.WriteHeader(http.StatusUnsupportedMediaType)
-		w.Write([]byte(fmt.Sprintf("Need content type application/json but got '%s'", ct)))
+		utils.JSONError(w, err, 400, "Need content-type as application/json")
 		return
 	}
 
 	var t model.TodoModel
 	err = json.Unmarshal(bodyBytes, &t)
 	if len(t.Title) == 0 {
-		http.Error(w, "Title not entered", http.StatusBadRequest)
+		utils.JSONError(w, err, 400, "Please enter a title")
+
 	}
 	fmt.Println(err)
 	fmt.Println(t.Completed)
@@ -71,25 +71,25 @@ func (e *Env) CreateTodo(w http.ResponseWriter, r *http.Request) { //Add validat
 	// err = dao.InsertTodo(t)
 	if err != nil {
 
-		utils.JSONError(w, err, 400)
+		utils.JSONError(w, err, 400, "Unable to insert into database")
 		return
 	}
 
-	utils.JSONOk(w, "")
+	utils.JSONOk(w, nil)
 	json.NewEncoder(w).Encode(t)
 	// io.WriteString(w, `{"CreateTodo": true}`)
 
 }
 
 // GetTodos function to get all the todos present in the database
-func (e *Env) GetTodos(w http.ResponseWriter, r *http.Request) {
+func (e *Controller) GetTodos(w http.ResponseWriter, r *http.Request) {
 
 	var todoSlice []model.TodoModel
 
 	todoSlice, err := e.Todo.GetAll()
 	if err != nil {
 
-		utils.JSONError(w, err, 500)
+		utils.JSONError(w, err, 500, "")
 		return
 	}
 
@@ -97,7 +97,7 @@ func (e *Env) GetTodos(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		utils.JSONError(w, err, 500)
+		utils.JSONError(w, err, 500, "Error in processing data")
 		return
 	}
 
@@ -106,14 +106,14 @@ func (e *Env) GetTodos(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateTodo Handler to update todo as completed
-func (e *Env) UpdateTodo(w http.ResponseWriter, r *http.Request) {
+func (e *Controller) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 
 	if err != nil {
 
-		utils.JSONError(w, err, 400)
+		utils.JSONError(w, err, 400, "Bad request")
 		return
 	}
 
@@ -121,7 +121,7 @@ func (e *Env) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 	if ct != "application/json" {
 
-		utils.JSONError(w, err, 415)
+		utils.JSONError(w, err, 415, "Content type not application/json")
 		w.Write([]byte(fmt.Sprintf("Need content type application/json but got '%s'", ct)))
 		return
 	}
@@ -135,26 +135,25 @@ func (e *Env) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	count, err := e.Todo.Update(id, completed)
 	if err != nil {
 
-		utils.JSONError(w, err, 400)
+		utils.JSONError(w, err, 400, "Bad request")
 		return
 	}
 
 	fmt.Println(count)
 
-	utils.JSONOk(w, "")
-	io.WriteString(w, `{"updateTodo": true}`)
+	utils.JSONOk(w, t)
+	// io.WriteString(w, `{"updateTodo": true}`)
 	// io.WriteString(w, `{"RowsUpdated": count}`)
 }
 
 //DeleteTodo func to remove the object from the db
-func (e *Env) DeleteTodo(w http.ResponseWriter, r *http.Request) {
+func (e *Controller) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 
 	if err != nil {
-		w.WriteHeader(http.StatusUnsupportedMediaType)
-		w.Write([]byte(err.Error()))
+		utils.JSONError(w, err, 415, "Id should be a integer")
 		return
 	}
 
@@ -162,8 +161,8 @@ func (e *Env) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 
 	if ct != "application/json" {
 
-		utils.JSONError(w, err, 415)
-		w.Write([]byte(fmt.Sprintf("Need content type application/json but got '%s'", ct)))
+		utils.JSONError(w, err, 415, "Need content type applicaion/json")
+		// w.Write([]byte(fmt.Sprintf("Need content type application/json but got '%s'", ct)))
 		return
 	}
 
@@ -173,33 +172,32 @@ func (e *Env) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	err = e.Todo.Delete(id)
 
 	if err != nil {
-		utils.JSONError(w, err, 400)
+		utils.JSONError(w, err, 400, "Id does not exist in Database")
 		return
 	}
 
-	utils.JSONOk(w, "")
+	utils.JSONOk(w, nil)
 	// w.WriteHeader(http.StatusOK)
 	// io.WriteString(w, `{"DeleteTodo": true}`)
 
 }
 
 // GetTodo ...
-func (e *Env) GetTodo(w http.ResponseWriter, r *http.Request) {
+func (e *Controller) GetTodo(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 
 	if err != nil {
-		w.WriteHeader(http.StatusUnsupportedMediaType)
-		w.Write([]byte(err.Error()))
+		utils.JSONError(w, err, 415, "Incorrect id passed in request")
 		return
 	}
 	var t model.TodoModel
 	t, err = e.Todo.GetOne(id)
 
-	if err != nil {
+	if err != nil || err == sql.ErrNoRows || t.ID == 0 {
 
-		utils.JSONError(w, err, 404)
+		utils.JSONError(w, err, 404, "Todo does not exist in database")
 		fmt.Println(err)
 		return
 	}
